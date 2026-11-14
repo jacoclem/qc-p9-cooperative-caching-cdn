@@ -1,0 +1,19 @@
+services:
+  qc-env:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qc_project9_env
+    volumes:
+      - .:/app
+    ports:
+      - "18000:18000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Permette di visualizzare il D-Wave Inspector sul browser del computer host
+      - DWAVE_INSPECTOR_HOST=0.0.0.0
+      - DWAVE_INSPECTOR_PORT=18000
+    tty: true
+    stdin_open: true
