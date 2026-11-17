@@ -1,94 +1,81 @@
+"""Solution validator and objective evaluator for Cooperative Caching in CDN."""
+
+from collections.abc import Mapping
+from typing import Any, Dict, Union
+
 import numpy as np
-from typing import Dict, Union, Tuple, Any
 
-#Estrae la matrice decisionale (m x n) dalla soluzione dove x è un array bidimensionale
-def extract_decision_matrix(solution: Union[Dict[str, Any], np.ndarray, list], m: int, n: int)->np.ndarray:
+from src.parser import CachingInstance
 
-    # Se è un dizionario
-    if isinstance(solution, dict):
-        
-        # Creo una matrice x e sostituisco i suoi valori con i valori della matrice soluzione
+
+def extract_decision_matrix(
+    solution: Union[Mapping[str, Any], np.ndarray, list],
+    m: int,
+    n: int,
+) -> np.ndarray:
+    """Extract the (m x n) binary decision matrix from a mapping or array."""
+    if isinstance(solution, Mapping):
         x = np.zeros((m, n), dtype=int)
         for h in range(m):
             for j in range(n):
                 val = solution.get(f"x_{h}_{j}", 0)
                 x[h, j] = int(round(val))
         return x
-    else:
-        #se non è un dizionario (Solutori classici) 
-        x = np.array(solution, dtype=int)
-        #controllo delle dimensioni della matrice
-        if x.shape != (m, n):
-            raise ValueError(f"Dimensione matrice attesa {(m, n)}, ricevuta {x.shape}")
-        return x
+
+    x = np.array(solution, dtype=int)
+    if x.shape != (m, n):
+        raise ValueError(f"Expected matrix shape {(m, n)}, got {x.shape}")
+    return x
 
 
-# Funzione che verifica se la soluzione rispetta i vincoli del problema e calcola il suo punteggio
 def validate_solution(
-    instance: Dict[str, Any],
-    solution: Union[Dict[str, Any], np.ndarray, list]
-    ):
+    instance: CachingInstance,
+    solution: Union[Mapping[str, Any], np.ndarray, list],
+) -> Dict[str, Any]:
+    """Check constraint feasibility and compute the true objective value."""
+    m = instance.m
+    n = instance.n
+    sigma = np.array(instance.sigma, dtype=int)
+    capacities = np.array(instance.K, dtype=int)
+    benefits = np.array(instance.b, dtype=float)
+    min_replicas = np.array(instance.r, dtype=int)
 
-    #Estraggo i parametri da instance
-    m = instance["m"] #numero server edge
-    n = instance["n"] #numero contenuti
-    sigma = np.array(instance["sigma"], dtype=float) #dimensione del contenuto
-    K = np.array(instance["K"], dtype=float) #capacità del server
-    b = np.array(instance["b"], dtype=float) #beneficio di salvare un contenuto in un server
-    r = np.array(instance["r"], dtype=int) #numero minimo di server che possiedono un contenuto
-    neighbors = instance["N"]
-    delta = instance["delta"]
-
-    #ottengo la matrice binaria
     x = extract_decision_matrix(solution, m, n)
 
-
-    #controllo che la matrice abbia solo valori binari
     if not np.all(np.isin(x, [0, 1])):
-        raise ValueError("La soluzione contiene valori non binari.")
+        raise ValueError("Solution contains non-binary values.")
 
-    #controllo capacità dei server
-    used_capacity = x @ sigma #prodotto matrice vettore -> spazio utilizzato in ogni server
-    cap_excess = np.maximum(0.0, used_capacity - K) #salva gli spazi in eccesso nei vari server altrimenti salva 0
-    cap_violations = int(np.sum(cap_excess > 0)) #Numero di server la cui memoria è stata superata
-    #è possibile inserire una piccola tolleranza per evitare falsi negativi
+    # Capacity constraint check: sum_j sigma_j * x_{h,j} <= K_h
+    used_capacity = x @ sigma
+    cap_excess = np.maximum(0, used_capacity - capacities)
+    cap_violations = int(np.sum(cap_excess > 0))
 
-    #controllo sul numero minimo 
-    copies_per_content = np.sum(x, axis=0) #somma (per colonna) il numero di contenuti salvati
-    rep_deficit = np.maximum(0, r - copies_per_content) #calcolo dei contenuti non abbastanza ridondanti
-    rep_violations = int(np.sum(rep_deficit > 0)) #restituisce il numero di violazioni del vincolo
+    # Minimum replication constraint check: sum_h x_{h,j} >= r_j
+    copies_per_content = np.sum(x, axis=0)
+    rep_deficit = np.maximum(0, min_replicas - copies_per_content)
+    rep_violations = int(np.sum(rep_deficit > 0))
 
     is_valid = (cap_violations == 0) and (rep_violations == 0)
 
-    #Calcolo della funzione oviettivo
-    benefit_term = np.sum(b * x) #somma(moltiplicazione del fattore del beneficio per la matrice soluzione)
-
-    #calcolo della penalità per server vicini che hanno salvato lo stesso contenuto
-    redundancy_penalty = 0.0
-    for edge in neighbors:
-        h, k = edge[0], edge[1]
+    # Objective computation: -sum(b_{h,j} * x_{h,j}) + sum(delta_{h,k,j} * x_{h,j} * x_{k,j})
+    benefit_total = float(np.sum(benefits * x))
+    redundancy_total = 0.0
+    for h, k in instance.N:
         for j in range(n):
             if x[h, j] == 1 and x[k, j] == 1:
-                #se è caricato come dizionario
-                if isinstance(delta, dict):
-                    d_val = delta.get((h, k, j), delta.get((k, h, j), 0.0))
-                else:
-                    d_val = delta[h][k][j]
-                redundancy_penalty += d_val
+                redundancy_total += float(instance.get_delta(h, k, j))
 
-    #calcolo del valore della funzione obiettivo finale
-    objective_value = float(-benefit_term + redundancy_penalty)
-
+    objective_value = -benefit_total + redundancy_total
 
     return {
         "is_valid": is_valid,
         "objective_value": objective_value,
-        "benefit_total": float(benefit_term),
-        "redundancy_total": float(redundancy_penalty),
+        "benefit_total": benefit_total,
+        "redundancy_total": redundancy_total,
         "capacity_violations": cap_violations,
         "replication_violations": rep_violations,
         "details": {
-            "max_capacity_excess": float(np.max(cap_excess)) if m > 0 else 0.0,
+            "max_capacity_excess": int(np.max(cap_excess)) if m > 0 else 0,
             "max_replication_deficit": int(np.max(rep_deficit)) if n > 0 else 0,
-        }
+        },
     }
