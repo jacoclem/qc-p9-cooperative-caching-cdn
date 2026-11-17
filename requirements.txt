@@ -6,8 +6,7 @@ minorminer>=0.2.13
 dwave-inspector>=0.5.0
 
 # Classical Heuristic Solvers (Simulated Annealing & Tabu Search)
-dwave-neal>=0.6.0
-dwave-tabu>=0.5.0
+dwave-samplers>=1.4.0
 
 # Classical Exact Solver (ILP / CP-SAT)
 ortools>=9.10

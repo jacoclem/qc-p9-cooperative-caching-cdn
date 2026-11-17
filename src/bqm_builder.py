@@ -1,72 +1,72 @@
-from dimod import BinaryQuadraticModel
-from typing import Dict, Any, Tuple
+"""Binary Quadratic Model (BQM) builder for Cooperative Caching in CDN."""
 
-def _add_variable(bqm, m, n):
+from typing import Dict, Tuple
+
+from dimod import BinaryQuadraticModel
+
+from src.parser import CachingInstance
+
+
+def _add_decision_variables(bqm: BinaryQuadraticModel, m: int, n: int) -> None:
+    """Add all binary decision variables x_{h}_{j} to the BQM."""
     for h in range(m):
         for j in range(n):
             bqm.add_variable(f"x_{h}_{j}")
 
 
-def build_bqm( instance: Dict[str, Any], gamma_cap: float = 10.0, gamma_rep: float = 10.0)-> Tuple[BinaryQuadraticModel, Dict[str, int]]:
+def build_bqm(
+    instance: CachingInstance,
+    gamma_cap: float = 10.0,
+    gamma_rep: float = 10.0,
+) -> Tuple[BinaryQuadraticModel, Dict[str, int]]:
+    """Build the BQM and return both the model and variable/interaction statistics."""
+    m = instance.m
+    n = instance.n
 
-    #Parametri
-    m = instance["m"]
-    n = instance["n"]
-    sigma = instance["sigma"]
-    K = instance["K"]
-    b = instance["b"]
-    r = instance["r"]
-    neighbors = instance["N"]
-    delta = instance["delta"]
-
-    #Inizializzazione del BQM con variabili binarie
     bqm = BinaryQuadraticModel(vartype="BINARY")
-    _add_variable(bqm, m, n)
+    _add_decision_variables(bqm, m, n)
 
-    #Funzione obiettivo termini lineari (beneficio)
+    # Objective function: linear benefit terms (negated for minimization)
     for h in range(m):
         for j in range(n):
-            bqm.set_linear(f"x_{h}_{j}", -b[h][j]) #incentivo del beneficio nel salvare il contenuto
-        
-    #Funzione obiettivo termine quadratico (penalità di ridondanza)
-    for edge in neighbors:
-        h, k = edge[0], edge[1]
-        for j in range(n):
-            #se salvato come un dizionario
-            if isinstance(delta, dict):
-                d_val=delta.get((h, k, j), delta.get((k, h, j), 0))
-            else:
-                d_val = delta[h][k][j]
+            bqm.set_linear(f"x_{h}_{j}", -instance.b[h][j])
 
+    # Objective function: quadratic redundancy penalties for neighboring servers
+    for h, k in instance.N:
+        for j in range(n):
+            d_val = instance.get_delta(h, k, j)
             if d_val != 0:
                 bqm.add_quadratic(f"x_{h}_{j}", f"x_{k}_{j}", d_val)
 
-    #Vincolo capacità del server
+    # Constraint 1: edge server memory capacity (sum_j sigma_j * x_{h,j} <= K_h)
     for h in range(m):
-        inequality=[]
-        for j in range(n):
-            inequality.append((f"x_{h}_{j}", sigma[j]))
-
+        inequality = [(f"x_{h}_{j}", instance.sigma[j]) for j in range(n)]
         bqm.add_linear_inequality_constraint(
-            inequality, 
+            inequality,
             lagrange_multiplier=gamma_cap,
             lb=0,
-            ub=K[h],
-            label=f"capacity_{h}"
+            ub=instance.K[h],
+            label=f"capacity_{h}",
         )
 
-    #Vincolo numero minimo di copie
+    # Constraint 2: minimum replication per content (r_j <= sum_h x_{h,j} <= m)
     for j in range(n):
-        inequality=[]
-        for h in range(m):
-            inequality.append((f"x_{h}_{j}", 1))
-
+        inequality = [(f"x_{h}_{j}", 1) for h in range(m)]
         bqm.add_linear_inequality_constraint(
             inequality,
             lagrange_multiplier=gamma_rep,
-            lb=r[j],
+            lb=instance.r[j],
             ub=m,
-            label=f"replication_{j}"
+            label=f"replication_{j}",
         )
-    
-    return bqm
+
+    num_logical = instance.num_variables
+    num_total = len(bqm.variables)
+    bqm_stats = {
+        "num_logical_vars": num_logical,
+        "num_slack_vars": num_total - num_logical,
+        "num_total_vars": num_total,
+        "num_quadratic_interactions": len(bqm.quadratic),
+    }
+
+    return bqm, bqm_stats
