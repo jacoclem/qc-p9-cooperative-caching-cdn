@@ -1,2 +1,65 @@
-.env
+# Python environment and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# D-Wave / Ocean SDK specific
+# Ignore local D-Wave config files if accidentally created in the project root
+dwave.conf
+dwave_profile.py
+
+# Docker
+docker-compose.override.yml
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.pydevproject
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific outputs and metrics
+# Uncomment the following lines if you do not want to track the generated JSON results
+# data/*_metrics.json
+# data/results_metrics.json
+# data/sa_baseline_all_blocks.json
+
+# Jupyter Notebooks (if used for data analysis later)
+.ipynb_checkpoints/
