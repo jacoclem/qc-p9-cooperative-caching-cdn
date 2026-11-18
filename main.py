@@ -17,6 +17,7 @@ from src.parser import (
     load_instances_by_block,
 )
 from src.validator import validate_solution
+from src.tuning import run_tuning
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
@@ -59,10 +60,34 @@ def parse_args() -> argparse.Namespace:
         help="Number of reads/samples per instance.",
     )
     parser.add_argument(
+        "--num-sweeps",
+        type=int,
+        default=1000,
+        help="Number of sweeps per read for Simulated Annealing.",
+    )
+    parser.add_argument(
         "--output",
         type=str,
-        default="data/sa_tuning_metrics.json",
+        default="tuning/sa_tuning_metrics.json",
         help="Output path for the JSON metrics report.",
+    )
+    parser.add_argument(
+        "--tuning",
+        action="store_true",
+        help="Run automated grid search for Lagrange multipliers"
+    )
+    parser.add_argument(
+        "--gamma-values",
+        type=float,
+        nargs="+",
+        default=[5.0, 10.0, 15.0, 20.0, 30.0, 50.0],
+        help="List of gamma values to test in grid search (default: 5 10 15 20 30 50).",
+    )
+    parser.add_argument(
+        "--exp-name",
+        type=str,
+        default=None,
+        help="Experiment label (saves output in tuning/<timestamp>_<exp-name>/).",
     )
     return parser.parse_args()
 
@@ -120,12 +145,25 @@ def main() -> None:
         instances = load_instances()
 
     logging.info(f"Loaded {len(instances)} instances.")
+
+    #Modalità grid search and heatmap
+    if args.tuning:
+        run_tuning(
+            instances=instances,
+            num_reads=args.num_reads,
+            output_path=Path(args.output),
+            exp_name=args.exp_name,
+            gamma_values=args.gamma_values,
+            num_sweeps=args.num_sweeps,
+        )
+        return
+
     sampler = SimulatedAnnealingSampler()
     results_metrics = []
 
     for instance in instances:
         logging.info(
-            f"--- Processing {instance.id} (Block {instance.blocco}) "
+            f"--- Processing {instance.id} (Block {instance.block}) "
             f"| gamma_cap={args.gamma_cap}, gamma_rep={args.gamma_rep} ---"
         )
 
@@ -148,7 +186,9 @@ def main() -> None:
 
         # Phase 2: Local Simulated Annealing execution (multiplier tuning)
         t1 = time.perf_counter()
-        sampleset = sampler.sample(bqm, num_reads=args.num_reads)
+        sampleset = sampler.sample(
+            bqm, num_reads=args.num_reads, num_sweeps=args.num_sweeps
+        )
         sa_time = time.perf_counter() - t1
 
         # Phase 3: Full SampleSet validation
@@ -164,7 +204,7 @@ def main() -> None:
         results_metrics.append(
             {
                 "instance_id": instance.id,
-                "block": instance.blocco,
+                "block": instance.block,
                 "gamma_cap": args.gamma_cap,
                 "gamma_rep": args.gamma_rep,
                 "bqm_build_time_s": bqm_build_time,
