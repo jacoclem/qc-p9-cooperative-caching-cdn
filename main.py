@@ -125,7 +125,7 @@ def main() -> None:
 
     for instance in instances:
         logging.info(
-            f"--- Processing {instance.id} (Block {instance.block}) "
+            f"--- Processing {instance.id} (Block {instance.blocco}) "
             f"| gamma_cap={args.gamma_cap}, gamma_rep={args.gamma_rep} ---"
         )
 
@@ -164,7 +164,7 @@ def main() -> None:
         results_metrics.append(
             {
                 "instance_id": instance.id,
-                "block": instance.block,
+                "block": instance.blocco,
                 "gamma_cap": args.gamma_cap,
                 "gamma_rep": args.gamma_rep,
                 "bqm_build_time_s": bqm_build_time,
