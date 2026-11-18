@@ -63,3 +63,6 @@ Thumbs.db
 
 # Jupyter Notebooks (if used for data analysis later)
 .ipynb_checkpoints/
+
+#Tuning data
+tuning/
