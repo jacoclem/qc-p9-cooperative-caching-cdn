@@ -90,6 +90,7 @@ def evaluate_with_optimality(
 
     return {
         "combined_score": combined_score,
+        "optimality_quality": optimality_quality,
         "feasible_ratio": feasible_ratio,
         "infeasible_ratio": infeasible_ratio,
         "best_feasible_obj": best_feasible_obj,
@@ -102,12 +103,14 @@ def plot_tuning_heatmap(
     n = len(gamma_values)
     idx_map = {val: i for i, val in enumerate(gamma_values)}
     score_grid = np.full((n, n), np.nan)
+    opt_grid = np.full((n, n), np.nan)
     infeasible_grid = np.full((n, n), np.nan)
 
     for r in results:
         i = idx_map[r["gamma_rep"]]
         j = idx_map[r["gamma_cap"]]
         score_grid[i, j] = r["combined_score"] * 100.0
+        opt_grid[i, j] = r.get("optimality_quality", 0.0) * 100.0
         infeasible_grid[i, j] = r["infeasible_ratio"] * 100.0
 
     fig, ax = plt.subplots(figsize=(8, 6.5))
@@ -130,18 +133,19 @@ def plot_tuning_heatmap(
     for i in range(n):
         for j in range(n):
             score = score_grid[i, j]
+            opt = opt_grid[i, j]
             infeasible = infeasible_grid[i, j]
             if not np.isnan(score):
                 color = "white" if score < 25 or score > 80 else "black"
                 ax.text(
                     j,
                     i,
-                    f"{score:.0f}%\n({infeasible:.0f}% infeas)",
+                    f"{score:.0f}%\nopt: {opt:.0f}%\ninf: {infeasible:.0f}%",
                     ha="center",
                     va="center",
                     color=color,
                     fontweight="bold",
-                    fontsize=9,
+                    fontsize=8,
                 )
 
     output_img.parent.mkdir(parents=True, exist_ok=True)
@@ -178,7 +182,7 @@ def run_tuning(
     #ciclo su tutti e due i valori per provare tutte le combinazioni possibili
     for g_cap in gamma_values:
         for g_rep in gamma_values:
-            scores, infeasibles, best_objs = [], [], []
+            scores, opt_qualities, infeasibles, best_objs = [], [], [], []
 
             #ciclo su tutte le istanze a disposizione
             for inst in instances:
@@ -191,11 +195,13 @@ def run_tuning(
 
                 #inserisco i risultati ottenuti nella risoluzione in scores e in infeasibles
                 scores.append(stats["combined_score"])
+                opt_qualities.append(stats["optimality_quality"])
                 infeasibles.append(stats["infeasible_ratio"])
                 if stats["best_feasible_obj"] is not None:
                     best_objs.append(stats["best_feasible_obj"])
 
             avg_score = float(np.mean(scores))
+            avg_opt_quality = float(np.mean(opt_qualities))
             avg_infeasible = float(np.mean(infeasibles))
             avg_best_obj = float(np.mean(best_objs)) if best_objs else None
 
@@ -203,6 +209,7 @@ def run_tuning(
                 "gamma_cap": g_cap,
                 "gamma_rep": g_rep,
                 "combined_score": avg_score,
+                "optimality_quality": avg_opt_quality,
                 "infeasible_ratio": avg_infeasible,
                 "feasible_ratio": 1.0 - avg_infeasible,
                 "avg_best_feasible_obj": avg_best_obj,
@@ -210,21 +217,20 @@ def run_tuning(
 
             logging.info(
                 f"gamma_cap={g_cap:4.1f}, gamma_rep={g_rep:4.1f} | "
-                f"Score: {avg_score:5.1%} | Infeasible: {avg_infeasible:5.1%}"
+                f"Score: {avg_score:5.1%} | Opt: {avg_opt_quality:5.1%} | Infeasible: {avg_infeasible:5.1%}"
             )
 
     if exp_name:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-        exp_dir = Path("tuning") / f"{timestamp}_{exp_name}"
+        exp_dir = Path("tuning-result") / exp_name
         exp_dir.mkdir(parents=True, exist_ok=True)
         json_path = exp_dir / "metrics.json"
         img_path = exp_dir / "tuning_heatmap.png"
         readme_path = exp_dir / "README.md"
     else:
-        tuning_dir = Path("tuning")
+        tuning_dir = Path("tuning-result")
         json_path = (
             output_path
-            if output_path.parts and output_path.parts[0] == "tuning"
+            if output_path.parts and output_path.parts[0] == "tuning-result"
             else tuning_dir / output_path.name
         )
         img_path = json_path.with_suffix(".png")
