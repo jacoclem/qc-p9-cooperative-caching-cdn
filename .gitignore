@@ -63,3 +63,7 @@ Thumbs.db
 
 # Jupyter Notebooks (if used for data analysis later)
 .ipynb_checkpoints/
+
+#Test data
+tuning-result/
+sweep-result/

@@ -1,72 +1,89 @@
-"""Binary Quadratic Model (BQM) builder for Cooperative Caching in CDN."""
-
-from typing import Dict, Tuple
-
 from dimod import BinaryQuadraticModel
+from typing import Dict, Any, Tuple
 
-from src.parser import CachingInstance
 
-
-def _add_decision_variables(bqm: BinaryQuadraticModel, m: int, n: int) -> None:
-    """Add all binary decision variables x_{h}_{j} to the BQM."""
+def _add_variables(bqm: BinaryQuadraticModel, m: int, n: int) -> None:
+    """Aggiunge al BQM le m*n variabili decisionali binarie x_{h}_{j}."""
     for h in range(m):
         for j in range(n):
             bqm.add_variable(f"x_{h}_{j}")
 
 
+def _extract_instance_params(instance: Any) -> Tuple[int, int, Any, Any, Any, Any, Any, Any]:
+    """Estrae i parametri dell'istanza supportando sia dict sia CachingInstance."""
+    getter = instance.__getitem__ if isinstance(instance, dict) else lambda k: getattr(instance, k)
+    return (
+        getter("m"),
+        getter("n"),
+        getter("sigma"),
+        getter("K"),
+        getter("b"),
+        getter("r"),
+        getter("N"),
+        getter("delta"),
+    )
+
+
 def build_bqm(
-    instance: CachingInstance,
+    instance: Any,
     gamma_cap: float = 10.0,
     gamma_rep: float = 10.0,
 ) -> Tuple[BinaryQuadraticModel, Dict[str, int]]:
-    """Build the BQM and return both the model and variable/interaction statistics."""
-    m = instance.m
-    n = instance.n
+    """Costruisce il BinaryQuadraticModel per il problema P09 e restituisce le statistiche."""
+    # Parametri
+    m, n, sigma, K, b, r, neighbors, delta = _extract_instance_params(instance)
 
+    # Inizializzazione del BQM con variabili binarie
     bqm = BinaryQuadraticModel(vartype="BINARY")
-    _add_decision_variables(bqm, m, n)
+    _add_variables(bqm, m, n)
 
-    # Objective function: linear benefit terms (negated for minimization)
+    # Funzione obiettivo termini lineari (beneficio)
     for h in range(m):
         for j in range(n):
-            bqm.set_linear(f"x_{h}_{j}", -instance.b[h][j])
+            bqm.set_linear(f"x_{h}_{j}", -b[h][j])  # incentivo del beneficio nel salvare il contenuto
 
-    # Objective function: quadratic redundancy penalties for neighboring servers
-    for h, k in instance.N:
+    # Funzione obiettivo termine quadratico (penalità di ridondanza)
+    for edge in neighbors:
+        h, k = edge[0], edge[1]
         for j in range(n):
-            d_val = instance.get_delta(h, k, j)
+            # se salvato come un dizionario
+            if isinstance(delta, dict):
+                d_val = delta.get((h, k, j), delta.get((k, h, j), 0))
+            else:
+                d_val = delta[h][k][j]
+
             if d_val != 0:
                 bqm.add_quadratic(f"x_{h}_{j}", f"x_{k}_{j}", d_val)
 
-    # Constraint 1: edge server memory capacity (sum_j sigma_j * x_{h,j} <= K_h)
+    # Vincolo capacità del server
     for h in range(m):
-        inequality = [(f"x_{h}_{j}", instance.sigma[j]) for j in range(n)]
+        inequality = [(f"x_{h}_{j}", sigma[j]) for j in range(n)]
         bqm.add_linear_inequality_constraint(
             inequality,
             lagrange_multiplier=gamma_cap,
             lb=0,
-            ub=instance.K[h],
+            ub=K[h],
             label=f"capacity_{h}",
         )
 
-    # Constraint 2: minimum replication per content (r_j <= sum_h x_{h,j} <= m)
+    # Vincolo numero minimo di copie
     for j in range(n):
         inequality = [(f"x_{h}_{j}", 1) for h in range(m)]
         bqm.add_linear_inequality_constraint(
             inequality,
             lagrange_multiplier=gamma_rep,
-            lb=instance.r[j],
+            lb=r[j],
             ub=m,
             label=f"replication_{j}",
         )
 
-    num_logical = instance.num_variables
-    num_total = len(bqm.variables)
+    num_logical_vars = m * n
+    num_total_vars = bqm.num_variables
     bqm_stats = {
-        "num_logical_vars": num_logical,
-        "num_slack_vars": num_total - num_logical,
-        "num_total_vars": num_total,
-        "num_quadratic_interactions": len(bqm.quadratic),
+        "num_logical_vars": num_logical_vars,
+        "num_slack_vars": num_total_vars - num_logical_vars,
+        "num_total_vars": num_total_vars,
+        "num_quadratic_interactions": bqm.num_interactions,
     }
 
     return bqm, bqm_stats
