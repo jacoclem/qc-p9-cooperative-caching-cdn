@@ -19,6 +19,7 @@ from src.parser import (
 from src.validator import validate_solution
 from src.tuning import run_tuning
 from src.sweep_search import run_sweep_search
+from src.embedding import compute_and_save_embeddings, run_qpu_probe
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
@@ -103,6 +104,35 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Experiment label (creates folder <exp-name> inside tuning-result/ or sweep-result/).",
     )
+    #Embedding
+    # Embedding & QPU Probe
+    parser.add_argument(
+        "--compute-embeddings",
+        action="store_true",
+        help="Calcola e salva i minor embedding sulla topologia della QPU per le istanze caricate",
+    )
+    parser.add_argument(
+        "--qpu-probe",
+        action="store_true",
+        help="Esegue una run di prova su QPU usando l'embedding salvato",
+    )
+    parser.add_argument(
+        "--solver",
+        type=str,
+        default="Advantage2_system1",
+        help="Nome del solver QPU D-Wave (default: Advantage2_system1)",
+    )
+    parser.add_argument(
+        "--chain-strength",
+        type=float,
+        default=None,
+        help="Valore di chain_strength per la QPU (default: automatico uniform_torque_compensation)",
+    )
+    parser.add_argument(
+        "--inspector",
+        action="store_true",
+        help="Apre dwave-inspector al termine della run QPU",
+    )
     return parser.parse_args()
 
 
@@ -183,6 +213,30 @@ def main() -> None:
             output_path=Path(args.output),
             exp_name=args.exp_name,
         )
+        return
+
+    # Modalità calcolo e salvataggio minor embedding
+    if args.compute_embeddings:
+        compute_and_save_embeddings(
+            instances=instances,
+            solver_name=args.solver,
+            gamma_cap=args.gamma_cap,
+            gamma_rep=args.gamma_rep,
+        )
+        return
+
+    # Modalità run di prova su QPU + dwave-inspector
+    if args.qpu_probe:
+        for instance in instances:
+            run_qpu_probe(
+                instance=instance,
+                gamma_cap=args.gamma_cap,
+                gamma_rep=args.gamma_rep,
+                chain_strength=args.chain_strength,
+                num_reads=args.num_reads,
+                solver_name=args.solver,
+                open_inspector=args.inspector,
+            )
         return
 
     sampler = SimulatedAnnealingSampler()
