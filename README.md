@@ -18,7 +18,7 @@ The problem is modeled as a **Constrained Binary Quadratic Model (BQM)** and sol
   - `parser.py`: Parses the JSON instances and exposes a clean `CachingInstance` dataclass.
   - `bqm_builder.py`: Maps the objective function and constraints into a QUBO/BQM formulation using Lagrange multipliers.
   - `validator.py`: Evaluates solutions against physical constraints (memory and replicas) and computes the exact objective value.
-  - `exact_solver.py`: *(WIP)* Classical ground-truth baseline using Google OR-Tools (CP-SAT).
+  - `ortools_solver.py`: Classical exact baseline using Google OR-Tools (CP-SAT) with per-block statistics.
 - `main.py`: The main orchestrator and CLI entry point.
 - `docker-compose.yml` / `Dockerfile`: Containerized environment setup.
 - `requirements.txt`: Python dependencies (Ocean SDK, OR-Tools, etc.).
