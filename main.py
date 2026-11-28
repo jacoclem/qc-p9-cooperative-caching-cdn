@@ -20,6 +20,7 @@ from src.validator import validate_solution
 from src.tuning import run_tuning
 from src.sweep_search import run_sweep_search
 from src.embedding import compute_and_save_embeddings, run_qpu_probe
+from src.ortools_solver import run_ortools_baseline
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
@@ -83,6 +84,18 @@ def parse_args() -> argparse.Namespace:
         "--sweep-test",
         action="store_true",
         help="Run performance benchmark curve across different num_sweeps values.",
+    )
+    group_mode.add_argument(
+        "--ortools",
+        "--exact-solver",
+        dest="ortools",
+        action="store_true",
+        help="Run classical exact baseline (OR-Tools CP-SAT) saving results to ortools-result/.",
+    )
+    parser.add_argument(
+        "--compare-sa",
+        action="store_true",
+        help="When used with --ortools, also run Simulated Annealing and compare against exact optima.",
     )
     parser.add_argument(
         "--gamma-values",
@@ -211,6 +224,19 @@ def main() -> None:
             gamma_rep=args.gamma_rep,
             num_reads=args.num_reads,
             output_path=Path(args.output),
+            exp_name=args.exp_name,
+        )
+        return
+
+    # Modalità baseline classica esatta (OR-Tools CP-SAT)
+    if args.ortools:
+        run_ortools_baseline(
+            instances=instances,
+            compare_sa=args.compare_sa,
+            gamma_cap=args.gamma_cap,
+            gamma_rep=args.gamma_rep,
+            num_reads=args.num_reads,
+            num_sweeps=args.num_sweeps,
             exp_name=args.exp_name,
         )
         return
