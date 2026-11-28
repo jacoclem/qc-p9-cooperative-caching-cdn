@@ -1,0 +1,182 @@
+[
+    {
+        "instance_id": "P09-00",
+        "block": 1,
+        "bqm_vars": 50,
+        "physical_qubits": 113,
+        "max_chain": 4,
+        "avg_chain": 2.26,
+        "time_s": 0.48
+    },
+    {
+        "instance_id": "P09-01",
+        "block": 1,
+        "bqm_vars": 49,
+        "physical_qubits": 116,
+        "max_chain": 4,
+        "avg_chain": 2.37,
+        "time_s": 0.557
+    },
+    {
+        "instance_id": "P09-02",
+        "block": 1,
+        "bqm_vars": 49,
+        "physical_qubits": 108,
+        "max_chain": 4,
+        "avg_chain": 2.2,
+        "time_s": 0.512
+    },
+    {
+        "instance_id": "P09-03",
+        "block": 1,
+        "bqm_vars": 50,
+        "physical_qubits": 110,
+        "max_chain": 4,
+        "avg_chain": 2.2,
+        "time_s": 0.419
+    },
+    {
+        "instance_id": "P09-04",
+        "block": 2,
+        "bqm_vars": 64,
+        "physical_qubits": 170,
+        "max_chain": 5,
+        "avg_chain": 2.66,
+        "time_s": 1.058
+    },
+    {
+        "instance_id": "P09-05",
+        "block": 2,
+        "bqm_vars": 61,
+        "physical_qubits": 160,
+        "max_chain": 5,
+        "avg_chain": 2.62,
+        "time_s": 1.104
+    },
+    {
+        "instance_id": "P09-06",
+        "block": 2,
+        "bqm_vars": 64,
+        "physical_qubits": 170,
+        "max_chain": 5,
+        "avg_chain": 2.66,
+        "time_s": 1.061
+    },
+    {
+        "instance_id": "P09-07",
+        "block": 2,
+        "bqm_vars": 64,
+        "physical_qubits": 170,
+        "max_chain": 5,
+        "avg_chain": 2.66,
+        "time_s": 1.035
+    },
+    {
+        "instance_id": "P09-08",
+        "block": 3,
+        "bqm_vars": 76,
+        "physical_qubits": 248,
+        "max_chain": 7,
+        "avg_chain": 3.26,
+        "time_s": 1.587
+    },
+    {
+        "instance_id": "P09-09",
+        "block": 3,
+        "bqm_vars": 76,
+        "physical_qubits": 248,
+        "max_chain": 7,
+        "avg_chain": 3.26,
+        "time_s": 1.588
+    },
+    {
+        "instance_id": "P09-10",
+        "block": 3,
+        "bqm_vars": 76,
+        "physical_qubits": 248,
+        "max_chain": 7,
+        "avg_chain": 3.26,
+        "time_s": 1.592
+    },
+    {
+        "instance_id": "P09-11",
+        "block": 3,
+        "bqm_vars": 76,
+        "physical_qubits": 248,
+        "max_chain": 7,
+        "avg_chain": 3.26,
+        "time_s": 1.58
+    },
+    {
+        "instance_id": "P09-12",
+        "block": 4,
+        "bqm_vars": 106,
+        "physical_qubits": 421,
+        "max_chain": 9,
+        "avg_chain": 3.97,
+        "time_s": 3.938
+    },
+    {
+        "instance_id": "P09-13",
+        "block": 4,
+        "bqm_vars": 107,
+        "physical_qubits": 393,
+        "max_chain": 8,
+        "avg_chain": 3.67,
+        "time_s": 6.385
+    },
+    {
+        "instance_id": "P09-14",
+        "block": 4,
+        "bqm_vars": 106,
+        "physical_qubits": 432,
+        "max_chain": 9,
+        "avg_chain": 4.08,
+        "time_s": 4.72
+    },
+    {
+        "instance_id": "P09-15",
+        "block": 4,
+        "bqm_vars": 106,
+        "physical_qubits": 418,
+        "max_chain": 9,
+        "avg_chain": 3.94,
+        "time_s": 6.857
+    },
+    {
+        "instance_id": "P09-16",
+        "block": 5,
+        "bqm_vars": 132,
+        "physical_qubits": 573,
+        "max_chain": 10,
+        "avg_chain": 4.34,
+        "time_s": 9.198
+    },
+    {
+        "instance_id": "P09-17",
+        "block": 5,
+        "bqm_vars": 138,
+        "physical_qubits": 644,
+        "max_chain": 11,
+        "avg_chain": 4.67,
+        "time_s": 11.153
+    },
+    {
+        "instance_id": "P09-18",
+        "block": 5,
+        "bqm_vars": 132,
+        "physical_qubits": 573,
+        "max_chain": 10,
+        "avg_chain": 4.34,
+        "time_s": 9.404
+    },
+    {
+        "instance_id": "P09-19",
+        "block": 5,
+        "bqm_vars": 134,
+        "physical_qubits": 680,
+        "max_chain": 13,
+        "avg_chain": 5.07,
+        "time_s": 5.505
+    }
+]
